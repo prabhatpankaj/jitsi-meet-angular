@@ -94,6 +94,7 @@ export class AppComponent implements OnInit {
     connection.addEventListener(this.jitsi.events.connection.CONNECTION_FAILED, this.onConnectionFailed);
     connection.addEventListener(this.jitsi.events.connection.CONNECTION_DISCONNECTED, this.disconnect);
     connection.connect();
+    console.log(connection, "connection")
   }
 
   private createRoom(connection: any, options: any) : void {
@@ -117,12 +118,12 @@ export class AppComponent implements OnInit {
     console.log('disconnecting?');
   }
 
-  private onRemoteTrack(data: any): void {
-    console.log(data, "onRemoteTrack");
+  private onRemoteTrack(): void {
+    console.log("onRemoteTrack");
   }
 
-  private onConferenceJoined(data: any): void {
-    console.log(data, "onConferenceJoined");
+  private onConferenceJoined(): void {
+    console.log("onConferenceJoined");
   }
 
   ngOnInit() {
