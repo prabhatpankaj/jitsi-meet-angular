@@ -1,0 +1,19 @@
+<div id="login">
+    <div>
+        Start as presenter or audience user
+    </div>
+    <div>
+        <button (click)="startAsPresenter()">Start as presenter</button>
+    </div>
+    <div>
+        <button (click)="startAsUser()">Start as user</button>
+    </div>
+</div>
+<button (click)="quitConference()">Quit conference</button>
+<div id="controls">
+    <a href="#" (click)="switchVideo()">switchVideo</a>
+    <div id="audioOutputSelectWrapper" style="display: none;">
+        Change audio output device
+        <!-- <select id="audioOutputSelect" (change)="changeAudioOutput(this)"></select> -->
+    </div>
+</div>

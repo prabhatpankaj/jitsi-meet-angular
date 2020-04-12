@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+declare var $: any;
 
 @Component({
   selector: 'app-root',
@@ -11,9 +12,23 @@ export class AppComponent implements OnInit {
   private connection: any;
   private room: any;
 
-  private initOptions = {
-    disableAudioLevels: true
+  constructor() {
+    this.jitsi = (window as any).JitsiMeetJS;
   }
+
+
+  private initOptions = {
+    disableAudioLevels: true,
+
+    desktopSharingChromeExtId: null,
+  
+    desktopSharingChromeDisabled: false,
+  
+    desktopSharingChromeSources: ['screen', 'window', 'tab'],
+  
+    desktopSharingChromeMinExtVersion: '0.1'
+
+  };
 
   private confOptions = {
     openBridgeChannel: true
@@ -21,69 +36,17 @@ export class AppComponent implements OnInit {
 
   private options = {
     hosts: {
-      domain: "beta.meet.jit.si",
-
-      muc: "conference.beta.meet.jit.si", // FIXME: use XEP-0030
-      focus: "focus.beta.meet.jit.si",
+      domain: 'beta.meet.jit.si',
+      muc: 'conference.beta.meet.jit.si' // FIXME: use XEP-0030
     },
-    disableSimulcast: false,
-    enableRemb: false,
-    enableTcc: true,
-    resolution: 720,
-    constraints: {
-      video: {
-        aspectRatio: 16 / 9,
-        height: {
-          ideal: 720,
-          max: 720,
-          min: 180,
-        },
-        width: {
-          ideal: 1280,
-          max: 1280,
-          min: 320,
-        },
-      },
-    },
-    externalConnectUrl: "//beta.meet.jit.si/http-pre-bind",
-    p2pStunServers: [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun1.l.google.com:19302" },
-      { urls: "stun:stun2.l.google.com:19302" },
-    ],
-    enableP2P: true, // flag to control P2P connections
-    p2p: {
-      enabled: true,
-      preferH264: true,
-      disableH264: true,
-      useStunTurn: true, // use XEP-0215 to fetch STUN and TURN server for the P2P connection
-      stunServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
-        { urls: "stun:stun2.l.google.com:19302" },
-      ],
-    },
-    useStunTurn: true, // use XEP-0215 to fetch STUN and TURN server for the JVB connection
-    useIPv6: false, // ipv6 support. use at your own risk
-    useNicks: false,
-    bosh: "https://beta.meet.jit.si/http-bind", // FIXME: use xep-0156 for that
-    openBridgeChannel: "websocket", // One of true, 'datachannel', or 'websocket'
-    channelLastN: -1, // The default value of the channel attribute last-n.
-    minHDHeight: 540,
-    startBitrate: "800",
-    useRtcpMux: true,
-    useBundle: true,
-    disableSuspendVideo: true,
-    stereo: false,
-    forceJVB121Ratio: -1,
-    enableTalkWhileMuted: true,
-    enableClosePage: true,
-
+    bosh: 'https://beta.meet.jit.si/http-bind', // FIXME: use xep-0156 for that
+  
+    // The name of client node advertised in XEP-0115 'c' stanza
+    clientNode: 'http://jitsi.org/jitsimeet'
   };
 
-  constructor() {
-    this.jitsi = (window as any).JitsiMeetJS;
-  }
+  role = 'user';
+  localTracks = [];
 
   private createConnection(options): any {
     return new this.jitsi.JitsiConnection(null, null, options);
@@ -93,8 +56,8 @@ export class AppComponent implements OnInit {
     connection.addEventListener(this.jitsi.events.connection.CONNECTION_ESTABLISHED, this.onConnectionSuccess);
     connection.addEventListener(this.jitsi.events.connection.CONNECTION_FAILED, this.onConnectionFailed);
     connection.addEventListener(this.jitsi.events.connection.CONNECTION_DISCONNECTED, this.disconnect);
+    this.jitsi.mediaDevices.addEventListener(this.jitsi.events.mediaDevices.DEVICE_LIST_CHANGED, this.onDeviceListChanged);
     connection.connect();
-    console.log(connection, "connection")
   }
 
   private createRoom(connection: any, options: any) : void {
@@ -126,12 +89,87 @@ export class AppComponent implements OnInit {
     console.log("onConferenceJoined");
   }
 
-  ngOnInit() {
+  private onDeviceListChanged(devices): void {
+    console.info('current devices', devices);
+  }
+
+  startAsPresenter() {
+    this.role = 'presenter';
+    this.initializeVideo();
+  }
+
+  startAsUser() {
+    console.log("here")
+  }
+
+  quitConference() {
+    console.log("here")
+  }
+
+  switchVideo() {
+    console.log("here")
+  }
+
+  changeAudioOutput() {
+    console.log("here")
+  }
+
+  onLocalTracks(tracks) {
+    this.localTracks = tracks;
+    for (let i = 0; i < this.localTracks.length; i++) {
+      this.localTracks[i].addEventListener(this.jitsi.events.track.TRACK_AUDIO_LEVEL_CHANGED,
+        audioLevel => console.log(`Audio Level local: ${audioLevel}`));
+      this.localTracks[i].addEventListener(
+        this.jitsi.events.track.TRACK_MUTE_CHANGED,
+        () => console.log('local track muted'));
+      this.localTracks[i].addEventListener(
+        this.jitsi.events.track.LOCAL_TRACK_STOPPED,
+        () => console.log('local track stoped'));
+      this.localTracks[i].addEventListener(
+        this.jitsi.events.track.TRACK_AUDIO_OUTPUT_CHANGED,
+        deviceId =>
+          console.log(
+            `track audio output device was changed to ${deviceId}`));
+      if (this.localTracks[i].getType() === 'video') {
+        $('body').append(`
+          <div>
+            <div>
+              <b style="font-size: 100px;">I'm ${this.role}<b>
+            </div>
+            <video style="width: 600px;" autoplay='1' id='localVideo${i}' />
+          </div>
+        `);
+        this.localTracks[i].attach($(`#localVideo${i}`)[0]);
+      } else {
+        $('body').append(
+          `<audio autoplay='1' muted='true' id='localAudio${i}' />`);
+        this.localTracks[i].attach($(`#localAudio${i}`)[0]);
+      }
+    }
+  }
+  
+
+  async initializeVideo() {
     this.jitsi.init(this.initOptions);
+    this.jitsi.setLogLevel(this.jitsi.logLevels.ERROR);
     this.connection = this.createConnection(this.options);
     this.setConnectionListeners(this.connection);
-    this.createRoom(this.connection, this.confOptions);
-    this.setRoomListeners(this.room);
-    this.room.join();
+
+    const tracks = await this.jitsi.createLocalTracks({ devices: ['audio', 'video'] });
+    this.onLocalTracks(tracks);
+  }
+
+  // initializeVideo() {
+  //   this.jitsi.init(this.initOptions);
+  //   this.jitsi.setLogLevel(this.jitsi.logLevels.ERROR);
+  //   this.connection = this.createConnection(this.options);
+  //   this.setConnectionListeners(this.connection);
+  //   this.createRoom(this.connection, this.confOptions);
+  //   this.setRoomListeners(this.room);
+  //   this.room.join();
+  // }
+
+  ngOnInit() {
+
   }
 }
